@@ -1,57 +1,40 @@
-// Service worker: app shell in cache (offline), copertine in cache runtime.
-const VERSION = 'visti-v1.0';
-const SHELL = [
+// Service worker: tiene in cache l'app shell così l'app si apre anche senza rete.
+// Le chiamate a TVmaze e iTunes non passano dalla cache.
+// Ad ogni nuova versione dell'app aggiornare CACHE.
+var CACHE = 'serie-podcast-v1.1';
+var SHELL = [
   './',
   './index.html',
-  './style.css',
-  './app.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './icons/maskable-512.png',
   './icons/apple-touch-icon.png'
 ];
-const IMG_CACHE = 'visti-img';
 
-self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+self.addEventListener('install', function (e) {
+  e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(SHELL); }).then(function () { return self.skipWaiting(); }));
 });
 
-self.addEventListener('activate', (e) => {
+self.addEventListener('activate', function (e) {
   e.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION && k !== IMG_CACHE).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim())
+    caches.keys().then(function (keys) {
+      return Promise.all(keys.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); }));
+    }).then(function () { return self.clients.claim(); })
   );
 });
 
-self.addEventListener('fetch', (e) => {
-  const req = e.request;
-  if (req.method !== 'GET') return;
-  const url = new URL(req.url);
-
-  // App shell: network first, così gli aggiornamenti arrivano subito; cache se offline.
-  if (url.origin === self.location.origin) {
-    e.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(VERSION).then((c) => c.put(req, copy));
-          return res;
-        })
-        .catch(() => caches.match(req).then((r) => r || caches.match('./index.html')))
-    );
-    return;
-  }
-
-  // Copertine: cache first.
-  if (req.destination === 'image') {
-    e.respondWith(
-      caches.open(IMG_CACHE).then((c) =>
-        c.match(req).then((hit) => hit || fetch(req).then((res) => {
-          c.put(req, res.clone());
-          return res;
-        }))
-      )
-    );
-  }
+// Stessa origine: prima la rete (così gli aggiornamenti arrivano subito), poi la cache se offline.
+self.addEventListener('fetch', function (e) {
+  var req = e.request;
+  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  e.respondWith(
+    fetch(req).then(function (res) {
+      var copy = res.clone();
+      caches.open(CACHE).then(function (c) { c.put(req, copy); });
+      return res;
+    }).catch(function () {
+      return caches.match(req, { ignoreSearch: true }).then(function (r) { return r || caches.match('./index.html'); });
+    })
+  );
 });

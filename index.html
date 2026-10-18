@@ -1,36 +1,307 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#11131a">
-  <meta name="description" content="Cerca serie TV e podcast e tieni traccia di cosa hai visto e di cosa ti manca.">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Visti">
-  <title>Visti · Serie e Podcast</title>
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icons/icon-192.png" type="image/png">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Serie e Podcast</title>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Serie">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+:root{
+  --bg:#0f1115; --card:#1a1d24; --card2:#232733; --txt:#eef0f4; --mut:#9aa1b2;
+  --acc:#4f8cff; --ok:#3ecf8e; --warn:#f5a524; --line:#2c3140;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:15px}
+body{padding:calc(12px + env(safe-area-inset-top)) 14px calc(90px + env(safe-area-inset-bottom))}
+h1{font-size:20px;margin:4px 0 12px}
+.chips{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto}
+.chip{background:var(--card);border:1px solid var(--line);color:var(--mut);padding:7px 14px;border-radius:20px;font-size:14px;white-space:nowrap}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.card{display:flex;gap:12px;background:var(--card);border-radius:14px;padding:10px;margin-bottom:10px;align-items:center}
+.cover{width:56px;height:78px;border-radius:8px;object-fit:cover;background:var(--card2);flex:none}
+.info{flex:1;min-width:0}
+.title{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub{color:var(--mut);font-size:13px;margin-top:3px}
+.bar{height:6px;background:var(--card2);border-radius:4px;margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--acc);border-radius:4px}
+.bar i.done{background:var(--ok)}
+.plus{flex:none;width:46px;height:46px;border-radius:50%;border:none;background:var(--acc);color:#fff;font-size:15px;font-weight:700}
+.plus:disabled{background:var(--card2);color:var(--mut)}
+.badge{display:inline-block;font-size:11px;padding:1px 7px;border-radius:8px;background:var(--card2);color:var(--mut);margin-right:6px}
+.fab{position:fixed;right:18px;bottom:calc(46px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;border:none;background:var(--acc);color:#fff;font-size:30px;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.sheet{position:fixed;inset:0;background:var(--bg);z-index:10;display:none;flex-direction:column;padding:calc(12px + env(safe-area-inset-top)) 14px 0}
+.sheet.open{display:flex}
+.top{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+.top h2{margin:0;font-size:18px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn{background:var(--card);border:1px solid var(--line);color:var(--txt);padding:9px 14px;border-radius:10px;font-size:14px}
+.btn.red{color:#ff6b6b}
+input[type=text]{width:100%;background:var(--card);border:1px solid var(--line);color:var(--txt);padding:12px;border-radius:10px;font-size:16px}
+.scroll{flex:1;overflow-y:auto;padding-bottom:70px}
+.res{display:flex;gap:12px;background:var(--card);border-radius:12px;padding:8px;margin-bottom:8px;align-items:center}
+.res .cover{width:44px;height:62px}
+.season{font-weight:600;margin:16px 0 6px;color:var(--acc);font-size:14px;display:flex;justify-content:space-between;align-items:center}
+.season button{background:none;border:none;color:var(--mut);font-size:12px;text-decoration:underline}
+.ep{display:flex;gap:10px;align-items:center;background:var(--card);padding:10px;border-radius:10px;margin-bottom:5px}
+.ep .n{width:34px;color:var(--mut);font-size:13px;flex:none}
+.ep .t{flex:1;min-width:0;font-size:14px}
+.ep .d{font-size:11px;color:var(--mut)}
+.ep .c{width:24px;height:24px;border-radius:50%;border:2px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff}
+.ep.seen .c{background:var(--ok);border-color:var(--ok)}
+.ep.seen .t{color:var(--mut)}
+.ep.future{opacity:.45}
+.empty{text-align:center;color:var(--mut);margin-top:60px;line-height:1.6}
+.msg{color:var(--mut);text-align:center;margin:20px 0}
+.foot{position:fixed;left:0;right:0;bottom:0;text-align:center;font-size:11px;color:#b4bacb;background:var(--bg);padding:8px 0 calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line);z-index:5}
+</style>
 </head>
 <body>
-  <header class="topbar">
-    <button class="icon-btn" id="backBtn" aria-label="Indietro" hidden>&#8592;</button>
-    <h1 id="title">Libreria</h1>
-  </header>
 
-  <main id="view" aria-live="polite"></main>
+<h1>Serie e Podcast</h1>
+<div class="chips" id="chips"></div>
+<div id="list"></div>
+<button class="fab" id="fab">+</button>
 
-  <nav class="tabbar" aria-label="Navigazione">
-    <a href="#/library" data-tab="library"><span class="ti">&#9776;</span><span>Libreria</span></a>
-    <a href="#/search" data-tab="search"><span class="ti">&#9906;</span><span>Cerca</span></a>
-    <a href="#/settings" data-tab="settings"><span class="ti">&#9881;</span><span>Altro</span></a>
-  </nav>
+<!-- Ricerca -->
+<div class="sheet" id="sAdd">
+  <div class="top"><h2>Aggiungi</h2><button class="btn" data-close="sAdd">Chiudi</button></div>
+  <div class="chips" id="addChips"></div>
+  <input type="text" id="q" placeholder="Cerca titolo..." autocomplete="off">
+  <div class="scroll" id="results"></div>
+</div>
 
-  <div id="toast" role="status" hidden></div>
+<!-- Dettaglio -->
+<div class="sheet" id="sDet">
+  <div class="top"><h2 id="detTitle"></h2><button class="btn" data-close="sDet">Chiudi</button></div>
+  <div class="scroll" id="detBody"></div>
+</div>
 
-  <script src="app.js"></script>
+<div class="foot">v1.1 · Creato da Denis Tramontano</div>
+
+<script>
+(function(){
+  // service worker (serve https, es. GitHub Pages)
+  if('serviceWorker' in navigator&&window.isSecureContext){
+    window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
+  }
+
+  var KEY='tracker_serie_podcast_v1';
+  var items=[];
+  try{items=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){items=[]}
+  var filter='all', addType='tv', openId=null;
+
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(items))}catch(e){alert('Impossibile salvare i dati.')}}
+  function $(id){return document.getElementById(id)}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]})}
+  function today(){return new Date().toISOString().slice(0,10)}
+
+  // ---- calcoli
+  function released(it){
+    if(it.type==='tv') return it.eps.filter(function(e){return !e.date||e.date<=today()});
+    return it.eps;
+  }
+  function stats(it){
+    var rel=released(it);
+    var seen=rel.filter(function(e){return it.seen[e.id]}).length;
+    var total=rel.length;
+    if(it.type==='pod'&&it.total&&it.total>total) total=it.total;
+    var next=rel.find(function(e){return !it.seen[e.id]});
+    var upcoming=it.type==='tv'?it.eps.length-rel.length:0;
+    return {seen:seen,total:total,left:Math.max(total-seen,0),next:next,upcoming:upcoming};
+  }
+  function epLabel(it,e){
+    if(it.type==='tv') return 'S'+e.season+'E'+e.num;
+    return '#'+e.num;
+  }
+
+  // ---- lista
+  function renderChips(){
+    var opts=[['all','Tutti'],['tv','Serie'],['pod','Podcast']];
+    $('chips').innerHTML=opts.map(function(o){return '<button class="chip'+(filter===o[0]?' on':'')+'" data-f="'+o[0]+'">'+o[1]+'</button>'}).join('');
+  }
+  function render(){
+    renderChips();
+    var list=items.filter(function(i){return filter==='all'||i.type===filter});
+    list.sort(function(a,b){
+      var da=stats(a).left===0?1:0, db=stats(b).left===0?1:0;
+      if(da!==db) return da-db;
+      return (b.lastTouch||0)-(a.lastTouch||0);
+    });
+    if(!list.length){
+      $('list').innerHTML='<div class="empty">Niente qui.<br>Tocca + per aggiungere una serie o un podcast.</div>';
+      return;
+    }
+    $('list').innerHTML=list.map(function(it){
+      var s=stats(it), pct=s.total?Math.round(s.seen/s.total*100):0, done=s.total>0&&s.left===0;
+      var line;
+      if(done) line='Finito · '+s.total+' puntate';
+      else line=(s.next?'Prossima '+epLabel(it,s.next)+' · ':'')+'viste '+s.seen+'/'+s.total+' · mancano '+s.left;
+      if(s.upcoming) line+=' · +'+s.upcoming+' in uscita';
+      return '<div class="card" data-open="'+it.id+'">'+
+        '<img class="cover" src="'+esc(it.img||'')+'" alt="" onerror="this.style.visibility=\'hidden\'">'+
+        '<div class="info"><div class="title">'+esc(it.title)+'</div>'+
+        '<div class="sub"><span class="badge">'+(it.type==='tv'?'Serie':'Podcast')+'</span>'+esc(line)+'</div>'+
+        '<div class="bar"><i class="'+(done?'done':'')+'" style="width:'+pct+'%"></i></div></div>'+
+        '<button class="plus" data-plus="'+it.id+'"'+(s.next?'':' disabled')+'>+1</button></div>';
+    }).join('');
+  }
+
+  function find(id){return items.find(function(i){return i.id===id})}
+
+  // ---- dettaglio
+  function renderDetail(){
+    var it=find(openId); if(!it) return;
+    var s=stats(it);
+    $('detTitle').textContent=it.title;
+    var html='<div class="sub" style="margin-bottom:6px">Viste '+s.seen+' di '+s.total+' · mancano '+s.left+(s.upcoming?' · '+s.upcoming+' non ancora uscite':'')+'</div>';
+    html+='<div style="display:flex;gap:8px;margin:10px 0 4px"><button class="btn" data-refresh="1">Aggiorna puntate</button><button class="btn red" data-del="1">Elimina</button></div>';
+    if(it.type==='pod'&&it.total>it.eps.length) html+='<div class="sub">Elenco limitato alle ultime '+it.eps.length+' puntate. Il totale ('+it.total+') include anche le più vecchie.</div>';
+    var seasons={}, order=[];
+    it.eps.forEach(function(e){var k=it.type==='tv'?e.season:0; if(!(k in seasons)){seasons[k]=[];order.push(k)} seasons[k].push(e)});
+    order.forEach(function(k){
+      var eps=seasons[k];
+      if(it.type==='tv'){
+        var rel=eps.filter(function(e){return !e.date||e.date<=today()});
+        var sn=rel.filter(function(e){return it.seen[e.id]}).length;
+        html+='<div class="season"><span>Stagione '+k+' · '+sn+'/'+rel.length+'</span><button data-season="'+k+'">'+(sn===rel.length?'Azzera':'Segna tutta')+'</button></div>';
+      } else html+='<div class="season"><span>Puntate</span></div>';
+      eps.forEach(function(e){
+        var fut=it.type==='tv'&&e.date&&e.date>today();
+        html+='<div class="ep'+(it.seen[e.id]?' seen':'')+(fut?' future':'')+'" data-ep="'+esc(e.id)+'">'+
+          '<div class="n">'+(it.type==='tv'?e.num:e.num)+'</div>'+
+          '<div class="t">'+esc(e.title||'Puntata '+e.num)+'<div class="d">'+esc(e.date||'')+(fut?' · in uscita':'')+' </div></div>'+
+          '<div class="c">'+(it.seen[e.id]?'&#10003;':'')+'</div></div>';
+      });
+    });
+    var sc=$('detBody'), top=sc.scrollTop;
+    sc.innerHTML=html; sc.scrollTop=top;
+  }
+  function openDetail(id){openId=id;$('sDet').classList.add('open');renderDetail()}
+
+  // ---- API
+  function getJSON(url){return fetch(url).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})}
+
+  function tvEpisodes(id){
+    return getJSON('https://api.tvmaze.com/shows/'+id+'/episodes').then(function(arr){
+      return arr.filter(function(e){return e.type==='regular'&&e.number!=null}).map(function(e){
+        return {id:'e'+e.id,season:e.season,num:e.number,title:e.name,date:e.airdate||''};
+      });
+    });
+  }
+  function podEpisodes(id){
+    return getJSON('https://itunes.apple.com/lookup?id='+id+'&entity=podcastEpisode&limit=200').then(function(d){
+      var res=d.results||[];
+      var show=res.find(function(r){return r.kind==='podcast'||r.wrapperType==='track'&&r.collectionId==id&&!r.episodeUrl})||{};
+      var eps=res.filter(function(r){return r.wrapperType==='podcastEpisode'}).sort(function(a,b){return new Date(a.releaseDate)-new Date(b.releaseDate)});
+      var total=show.trackCount||eps.length;
+      var firstNum=Math.max(total-eps.length,0)+1;
+      return {total:total,eps:eps.map(function(e,i){return {id:'p'+e.trackId,num:firstNum+i,title:e.trackName,date:(e.releaseDate||'').slice(0,10)}})};
+    });
+  }
+
+  // ---- ricerca
+  function renderAddChips(){
+    $('addChips').innerHTML=[['tv','Serie TV'],['pod','Podcast']].map(function(o){return '<button class="chip'+(addType===o[0]?' on':'')+'" data-at="'+o[0]+'">'+o[1]+'</button>'}).join('');
+  }
+  var timer=null, reqN=0;
+  function doSearch(){
+    var q=$('q').value.trim(), n=++reqN;
+    if(q.length<2){$('results').innerHTML='';return}
+    $('results').innerHTML='<div class="msg">Cerco...</div>';
+    var p;
+    if(addType==='tv'){
+      p=getJSON('https://api.tvmaze.com/search/shows?q='+encodeURIComponent(q)).then(function(a){
+        return a.slice(0,15).map(function(x){var s=x.show;return {ext:String(s.id),title:s.name,img:s.image&&s.image.medium?s.image.medium.replace('http://','https://'):'',sub:(s.premiered||'').slice(0,4)+(s.network?' · '+s.network.name:s.webChannel?' · '+s.webChannel.name:'')}});
+      });
+    } else {
+      p=getJSON('https://itunes.apple.com/search?media=podcast&entity=podcast&limit=15&country=IT&term='+encodeURIComponent(q)).then(function(d){
+        return (d.results||[]).map(function(x){return {ext:String(x.collectionId),title:x.collectionName,img:x.artworkUrl100||'',sub:x.artistName+(x.trackCount?' · '+x.trackCount+' puntate':'')}});
+      });
+    }
+    p.then(function(list){
+      if(n!==reqN) return;
+      if(!list.length){$('results').innerHTML='<div class="msg">Nessun risultato.</div>';return}
+      $('results').innerHTML=list.map(function(r,i){
+        var have=items.some(function(it){return it.type===addType&&it.ext===r.ext});
+        return '<div class="res" data-i="'+i+'"><img class="cover" src="'+esc(r.img)+'" alt="" onerror="this.style.visibility=\'hidden\'"><div class="info"><div class="title">'+esc(r.title)+'</div><div class="sub">'+esc(r.sub)+(have?' · già aggiunto':'')+'</div></div></div>';
+      }).join('');
+      $('results')._list=list;
+    }).catch(function(){
+      if(n!==reqN) return;
+      $('results').innerHTML='<div class="msg">Errore di rete. Controlla la connessione.</div>';
+    });
+  }
+  function addItem(r){
+    if(items.some(function(it){return it.type===addType&&it.ext===r.ext})){alert('Già nella lista.');return}
+    $('results').innerHTML='<div class="msg">Carico le puntate...</div>';
+    var type=addType;
+    var p=type==='tv'?tvEpisodes(r.ext).then(function(eps){return {eps:eps,total:eps.length}}):podEpisodes(r.ext);
+    p.then(function(d){
+      var it={id:'i'+Date.now(),ext:r.ext,type:type,title:r.title,img:r.img,eps:d.eps,total:d.total,seen:{},lastTouch:Date.now()};
+      items.push(it);save();
+      $('sAdd').classList.remove('open');
+      render();openDetail(it.id);
+    }).catch(function(){$('results').innerHTML='<div class="msg">Errore nel caricare le puntate. Riprova.</div>'});
+  }
+
+  // ---- azioni
+  function plusOne(id){
+    var it=find(id); if(!it) return;
+    var s=stats(it); if(!s.next) return;
+    it.seen[s.next.id]=true; it.lastTouch=Date.now(); save(); render();
+  }
+  function toggleEp(id,epId){
+    var it=find(id); if(!it) return;
+    if(it.seen[epId]) delete it.seen[epId]; else it.seen[epId]=true;
+    it.lastTouch=Date.now(); save(); renderDetail(); render();
+  }
+  function toggleSeason(id,k){
+    var it=find(id); if(!it) return;
+    var rel=it.eps.filter(function(e){return String(e.season)===String(k)&&(!e.date||e.date<=today())});
+    var all=rel.every(function(e){return it.seen[e.id]});
+    rel.forEach(function(e){if(all) delete it.seen[e.id]; else it.seen[e.id]=true});
+    it.lastTouch=Date.now(); save(); renderDetail(); render();
+  }
+  function refresh(id){
+    var it=find(id); if(!it) return;
+    var p=it.type==='tv'?tvEpisodes(it.ext).then(function(eps){return {eps:eps,total:eps.length}}):podEpisodes(it.ext);
+    p.then(function(d){it.eps=d.eps;it.total=d.total;save();renderDetail();render()}).catch(function(){alert('Errore di rete.')});
+  }
+
+  // ---- eventi
+  document.addEventListener('click',function(ev){
+    var t=ev.target;
+    var el;
+    if((el=t.closest('[data-plus]'))){ev.stopPropagation();plusOne(el.getAttribute('data-plus'));return}
+    if((el=t.closest('[data-f]'))){filter=el.getAttribute('data-f');render();return}
+    if((el=t.closest('[data-open]'))){openDetail(el.getAttribute('data-open'));return}
+    if((el=t.closest('[data-close]'))){$(el.getAttribute('data-close')).classList.remove('open');if(el.getAttribute('data-close')==='sDet')openId=null;return}
+    if((el=t.closest('[data-at]'))){addType=el.getAttribute('data-at');renderAddChips();doSearch();return}
+    if((el=t.closest('#results .res'))){var l=$('results')._list;if(l)addItem(l[+el.getAttribute('data-i')]);return}
+    if((el=t.closest('[data-ep]'))){toggleEp(openId,el.getAttribute('data-ep'));return}
+    if((el=t.closest('[data-season]'))){toggleSeason(openId,el.getAttribute('data-season'));return}
+    if(t.closest('[data-refresh]')){refresh(openId);return}
+    if(t.closest('[data-del]')){
+      if(confirm('Eliminare questo titolo dalla lista?')){
+        items=items.filter(function(i){return i.id!==openId});save();
+        $('sDet').classList.remove('open');openId=null;render();
+      }
+      return;
+    }
+  });
+  $('fab').addEventListener('click',function(){
+    $('sAdd').classList.add('open');$('q').value='';$('results').innerHTML='';renderAddChips();setTimeout(function(){$('q').focus()},50);
+  });
+  $('q').addEventListener('input',function(){clearTimeout(timer);timer=setTimeout(doSearch,350)});
+
+  render();
+})();
+</script>
 </body>
 </html>
